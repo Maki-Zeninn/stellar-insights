@@ -24,7 +24,14 @@ export function useCorridorPerformanceAlerts(
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const onAlertRef = useRef(onAlert);
-  onAlertRef.current = onAlert;
+  useEffect(() => {
+    onAlertRef.current = onAlert;
+  });
+
+  // Holds the latest `connect` so the reconnect timeout below can call it
+  // without referencing `connect` before it's declared (same pattern as
+  // useWebSocket.ts).
+  const connectRef = useRef<() => void>(() => {});
 
   const connect = useCallback(() => {
     try {
@@ -75,7 +82,9 @@ export function useCorridorPerformanceAlerts(
       ws.onclose = () => {
         setIsConnected(false);
         // Reconnect after 5 seconds
-        reconnectTimeoutRef.current = setTimeout(connect, 5000);
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectRef.current();
+        }, 5000);
       };
 
       ws.onerror = () => {
@@ -85,6 +94,10 @@ export function useCorridorPerformanceAlerts(
       logger.error("Failed to connect to corridor performance alerts:", err);
     }
   }, []);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  });
 
   useEffect(() => {
     connect();

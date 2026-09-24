@@ -1,3 +1,4 @@
+import type { PaginatedResponse } from "./pagination";
 
 
 /**
@@ -128,10 +129,8 @@ export interface AnchorMetrics {
   status: string;
 }
 
-export interface AnchorsResponse {
-  anchors: AnchorMetrics[];
-  total: number;
-}
+/** Paginated anchor list, as returned by `GET /api/anchors`. */
+export type AnchorsResponse = PaginatedResponse<AnchorMetrics>;
 
 export interface ReliabilityDataPoint {
   timestamp: string;

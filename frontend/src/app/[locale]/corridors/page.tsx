@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { logger } from "@/lib/logger";
 import {
   TrendingUp,
   Search,
@@ -15,7 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SkeletonCorridorCard } from "@/components/ui/Skeleton";
 import { Link } from "@/i18n/navigation";
-import { getCorridors, CorridorMetrics } from "@/lib/api/corridors";
+import type { CorridorFilters } from "@/lib/api/corridors";
+import { useCorridors } from "@/lib/react-query/queries";
 import { mockCorridors } from "@/components/lib//mockCorridorData";
 import { DataTablePagination } from "@/components/ui/DataTablePagination";
 import { usePagination } from "@/hooks/usePagination";
@@ -35,7 +35,6 @@ const CorridorHeatmap = dynamic(
 function CorridorsPageContent() {
   const { prefs, setPrefs } = useUserPreferences();
 
-  const [corridors, setCorridors] = useState<CorridorMetrics[]>([]);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
   const viewMode = prefs.corridorsViewMode;
@@ -47,9 +46,21 @@ function CorridorsPageContent() {
   const setTimePeriod = (v: typeof timePeriod) =>
     setPrefs({ corridorsTimePeriod: v });
 
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+
+  // The page filters/paginates client-side, so request one large page.
+  const corridorQuery = useCorridors({
+    time_period: timePeriod || undefined,
+    sort_by: sortBy,
+    limit: 200,
+  } satisfies CorridorFilters);
+  // Fall back to demo data when the backend is unreachable.
+  const corridors = useMemo(
+    () => corridorQuery.data?.data ?? (corridorQuery.isError ? mockCorridors : []),
+    [corridorQuery.data, corridorQuery.isError],
+  );
+  const loading = corridorQuery.isPending && !corridorQuery.isError;
 
   const filteredCorridors = useMemo(() => {
     return corridors
@@ -82,30 +93,6 @@ function CorridorsPageContent() {
     startIndex,
     endIndex,
   } = usePagination(filteredCorridors.length);
-
-  useEffect(() => {
-    async function fetchCorridors() {
-      try {
-        setLoading(true);
-        try {
-          const filters: Record<string, string | number> = {};
-          if (timePeriod) filters.time_period = timePeriod;
-          filters.sort_by = sortBy;
-
-          const result = await getCorridors(filters);
-          setCorridors(result);
-        } catch {
-          setCorridors(mockCorridors);
-        }
-      } catch (err) {
-        logger.error("Error fetching corridors:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCorridors();
-  }, [timePeriod, sortBy]);
 
   const paginatedCorridors = filteredCorridors.slice(startIndex, endIndex);
 

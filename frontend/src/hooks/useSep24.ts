@@ -1,4 +1,5 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 import { queryKeys, useApiQuery, useApiMutation } from '@/lib/react-query/hooks';
 import {
   getSep24Info,
@@ -53,7 +54,7 @@ export function useSep24Transactions(transferServer: string, jwt?: string) {
 
 export function useStartDepositFlow() {
   const queryClient = useQueryClient();
-  const { addNotification } = useAppStore();
+  const addNotification = useAppStore((state) => state.addNotification);
 
   return useApiMutation(
     ({ transferServer, assetCode, amount, account, jwt }: {
@@ -99,7 +100,7 @@ export function useStartDepositFlow() {
 
 export function useStartWithdrawFlow() {
   const queryClient = useQueryClient();
-  const { addNotification } = useAppStore();
+  const addNotification = useAppStore((state) => state.addNotification);
 
   return useApiMutation(
     ({ transferServer, assetCode, amount, account, jwt }: {
@@ -147,11 +148,22 @@ export function useSep24FlowState() {
   const {
     formData,
     setFormData,
+    clearFormData,
     setFormErrors,
     clearFormErrors,
     setLoading,
     loading,
-  } = useAppStore();
+  } = useAppStore(
+    useShallow((state) => ({
+      formData: state.formData,
+      setFormData: state.setFormData,
+      clearFormData: state.clearFormData,
+      setFormErrors: state.setFormErrors,
+      clearFormErrors: state.clearFormErrors,
+      setLoading: state.setLoading,
+      loading: state.loading,
+    }))
+  );
 
   const formKey = 'sep24-flow';
   

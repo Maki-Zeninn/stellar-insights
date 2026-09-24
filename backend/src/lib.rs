@@ -15,6 +15,7 @@ pub mod backup;
 pub mod broadcast;
 pub mod cache;
 pub mod cache_invalidation;
+pub mod client_ip;
 // cache_middleware removed in favor of cache helper APIs
 pub mod crypto;
 pub mod database;
@@ -29,6 +30,7 @@ pub mod health_check_enhanced; // Enhanced health check with mobile support
 pub mod http_cache; // HTTP caching layer (ETag/conditional responses)
 pub mod ingestion;
 pub mod ip_whitelist_middleware;
+pub mod leader_election;
 pub mod jobs;
 pub mod logging;
 pub mod ml;

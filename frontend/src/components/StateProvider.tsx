@@ -2,98 +2,65 @@
 
 import React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ReactQueryLogger } from '@/lib/react-query/logger';
-import { ReactQueryProvider as CustomReactQueryProvider } from '@/lib/react-query/provider';
+import { ReactQueryProvider } from '@/lib/react-query/provider';
 import { useAppStore } from '@/lib/zustand/store';
 
 interface StateProviderProps {
   children: React.ReactNode;
 }
 
+/**
+ * Root state provider: React Query for server state, Zustand for client state.
+ * React Query devtools and the query logger are mounted by `ReactQueryProvider`
+ * in development; this adds `window.__stateDevtools` for console debugging.
+ *
+ * See docs/FRONTEND_STATE_MANAGEMENT.md.
+ */
 export function StateProvider({ children }: StateProviderProps) {
   return (
-    <CustomReactQueryProvider>
+    <ReactQueryProvider>
       {children}
-      <ReactQueryLogger />
-      <ReactQueryDevtools initialIsOpen={false} />
-      <StateDevTools />
-    </CustomReactQueryProvider>
+      {process.env.NODE_ENV === 'development' && <StateDevTools />}
+    </ReactQueryProvider>
   );
 }
 
 /**
- * Development-only state debugging tools
+ * Development-only console helpers. Reads the store imperatively so it never
+ * subscribes to (and re-renders on) state changes.
  */
 function StateDevTools() {
-  const store = useAppStore();
   const queryClient = useQueryClient();
 
   React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      // Expose debugging functions to window
-      (window as any).__stateDevtools = {
-        // Store debugging
-        store,
-        logState: () => console.log('Store State:', store.getState()),
-        resetState: () => store.resetState(),
+    const w = window as unknown as { __stateDevtools?: unknown };
+    w.__stateDevtools = {
+      // Client state (Zustand)
+      getState: () => useAppStore.getState(),
+      logState: () => console.log('Store State:', useAppStore.getState()),
+      resetState: () => useAppStore.getState().resetState(),
 
-        // Query debugging
-        logQueries: () => {
-          const cache = queryClient.getQueryCache();
-          console.log('Query Cache:', cache.getAll());
-        },
-        invalidateAll: () => {
-          queryClient.invalidateQueries();
-        },
-        getQueryData: (queryKey: string[]) => {
-          const query = queryClient.getQueryCache().find(({ queryKey: key }) =>
-            JSON.stringify(key) === JSON.stringify(queryKey)
-          );
-          return query?.state.data;
-        },
+      // Server state (React Query)
+      logQueries: () => console.log('Query Cache:', queryClient.getQueryCache().getAll()),
+      invalidateAll: () => queryClient.invalidateQueries(),
+      getQueryData: (queryKey: readonly unknown[]) => queryClient.getQueryData(queryKey),
+      getPerformance: () => {
+        const queries = queryClient.getQueryCache().getAll();
+        return {
+          totalQueries: queries.length,
+          activeQueries: queries.filter((q) => q.getObserversCount() > 0).length,
+          staleQueries: queries.filter((q) => q.isStale()).length,
+          fetchingQueries: queries.filter((q) => q.state.fetchStatus === 'fetching').length,
+        };
+      },
+    };
 
-        // Performance debugging
-        getPerformance: () => {
-          const cache = queryClient.getQueryCache();
-          const queries = cache.getAll();
-          return {
-            totalQueries: queries.length,
-            activeQueries: queries.filter((q: any) => q.getObserversCount() > 0).length,
-            staleQueries: queries.filter((q: any) => q.isStale()).length,
-            averageStaleTime: queries.reduce((acc: number, q: any) => acc + q.state.staleTime, 0) / queries.length,
-          };
-        },
-      };
-    }
-  }, [store, queryClient]);
+    return () => {
+      delete w.__stateDevtools;
+    };
+  }, [queryClient]);
 
-  return null; // This component doesn't render anything
+  return null;
 }
 
-/**
- * Hook for accessing debugging tools
- */
-export function useDebugTools() {
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const debugTools = (window as any).__stateDevtools;
-
-      // Log performance metrics every 30 seconds
-      const interval = setInterval(() => {
-        if (debugTools?.getPerformance) {
-          const perf = debugTools.getPerformance();
-          if (perf.staleQueries > 0) {
-            console.warn(`Performance: ${perf.staleQueries} stale queries, average stale time: ${perf.averageStaleTime}ms`);
-          }
-        }
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, []);
-
-  return { StateDevTools, useDebugTools };
-}
-
-export { StateDevTools, useDebugTools };
+export { StateDevTools };

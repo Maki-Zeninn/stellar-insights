@@ -68,7 +68,7 @@ Target `api_access`, one event per request, emitted when the response is ready:
 | `API_LOG_SKIP_PATHS` | `/health,/metrics,/ready,/live` | Exact paths never logged (probes, Prometheus scrapes). |
 | `API_LOG_BODIES` | `false` | Also log redacted request and response bodies (target `api_access_body`). Turn on temporarily when reproducing an issue. |
 | `API_LOG_MAX_BODY_BYTES` | `2048` | Truncation length for logged bodies. |
-| `RUST_LOG` | `stellar_insights_backend=info,tower_http=info` | Standard filter. Keep `api_access=info` in production for the audit trail (mainnet: `warn,api_access=info`). |
+| `RUST_LOG` | `payraider_backend=info,tower_http=info` | Standard filter. Keep `api_access=info` in production for the audit trail (mainnet: `warn,api_access=info`). |
 | `LOG_FORMAT` | `json` | `json` for ELK, anything else for human-readable output. |
 | `LOG_DIR` | unset | Also write daily-rotated `stellar-insights.*.log` files to this directory. |
 

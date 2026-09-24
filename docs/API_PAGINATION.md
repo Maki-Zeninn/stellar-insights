@@ -86,8 +86,8 @@ async fn list_things(
 - Proxying an upstream paging token? Use `PaginatedResponse::from_tokens(items, limit, next, prev)`.
 - Don't `#[serde(flatten)]` `PaginationParams` into a query struct: `serde_urlencoded` can't
   deserialize numbers through `flatten`. Declare the three fields and build `PaginationParams` from them.
-- Add the instantiation to the `aliases(...)` list on `PaginatedResponse` and register it in
-  `openapi.rs` so the spec shows the concrete item type.
+- Document the response as `body = PaginatedResponse<Thing>` in `#[utoipa::path]` (item type must
+  derive `ToSchema`) so the spec shows the concrete item type.
 
 On the frontend, type responses as `PaginatedResponse<T>` and use `getNextCursor` with `useInfiniteQuery`
 when you need incremental loading.

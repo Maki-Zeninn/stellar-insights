@@ -232,13 +232,10 @@ pub struct PageLinks {
 
 /// Standard paginated response envelope used by all list endpoints.
 ///
-/// Concrete instantiations are registered as named OpenAPI schemas via
-/// `aliases` so the generated spec documents the real item type.
+/// Reference concrete instantiations directly in `#[utoipa::path]` bodies
+/// (e.g. `body = PaginatedResponse<CorridorResponse>`); utoipa 5 resolves the
+/// generic so the spec documents the real item type.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[aliases(
-    PaginatedCorridors = PaginatedResponse<crate::api::corridors::CorridorResponse>,
-    PaginatedAnchors = PaginatedResponse<crate::api::anchors::AnchorMetricsResponse>
-)]
 pub struct PaginatedResponse<T: Serialize> {
     /// The page of items.
     pub data: Vec<T>,

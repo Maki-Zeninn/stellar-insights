@@ -23,6 +23,9 @@ export interface CorridorMetrics {
   last_updated: string;
 }
 
+// Kept for existing imports; the canonical type lives in ./pagination.
+export type { PaginatedResponse } from "./pagination";
+
 export interface CorridorDetailData {
   corridor: CorridorMetrics;
   historical_success_rate: SuccessRateDataPoint[];
